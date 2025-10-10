@@ -24,18 +24,35 @@ jobs:
           wget -q https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
           unzip -q gradle-7.6.4-bin.zip
 
-      - name: Start SUT with more time
+      - name: Find free port and start SUT
+        id: start-app
         run: |
-          java -jar ./artifacts/app-order.jar &
-          echo "Waiting for app to start..."
-          sleep 20
-          echo "Checking if app is running..."
-          netstat -tulpn | grep 9999 || echo "Port 9999 check"
-          ps aux | grep java
+          # Пробуем разные порты
+          for port in 8080 8888 7777 9990 9998; do
+            echo "Trying port $port"
+            java -jar ./artifacts/app-order.jar -port=$port &
+            APP_PID=$!
+            sleep 5
+          
+            if ps -p $APP_PID > /dev/null && (netstat -tulpn 2>/dev/null | grep -q ":$port" || curl -s http://localhost:$port > /dev/null); then
+              echo "App started successfully on port $port"
+              echo "port=$port" >> $GITHUB_OUTPUT
+              echo "pid=$APP_PID" >> $GITHUB_OUTPUT
+              break
+            else
+              kill $APP_PID 2>/dev/null || true
+              echo "Port $port failed, trying next..."
+            fi
+          done
 
       - name: Test with Gradle 7.6
         run: |
-          ./gradle-7.6.4/bin/gradle test --no-daemon --info
+          ./gradle-7.6.4/bin/gradle test -Dapp.port=${{ steps.start-app.outputs.port }} --no-daemon --info
+
+      - name: Stop SUT
+        if: always()
+        run: |
+          kill ${{ steps.start-app.outputs.pid }} 2>/dev/null || true
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4

@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CardOrderTest {
     private WebDriver driver;
     private WebDriverWait wait;
+    private String appUrl;
 
     @BeforeAll
     static void setupAll() {
@@ -25,6 +26,11 @@ class CardOrderTest {
 
     @BeforeEach
     void setup() {
+        // Получаем порт из системной переменной или используем по умолчанию 9999
+        String port = System.getProperty("app.port", "9999");
+        appUrl = "http://localhost:" + port;
+        System.out.println("Using URL: " + appUrl);
+
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--no-sandbox");
@@ -32,8 +38,10 @@ class CardOrderTest {
         options.addArguments("--window-size=1920,1080");
         options.addArguments("--remote-allow-origins=*");
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        driver.get("http://localhost:9999");
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        // Пробуем подключиться с повторными попытками
+        connectWithRetry();
     }
 
     @AfterEach
@@ -43,27 +51,43 @@ class CardOrderTest {
         }
     }
 
+    private void connectWithRetry() {
+        int attempts = 0;
+        while (attempts < 5) {
+            try {
+                driver.get(appUrl);
+                // Если дошли сюда - подключение успешно
+                System.out.println("Successfully connected to " + appUrl);
+                return;
+            } catch (Exception e) {
+                attempts++;
+                System.out.println("Connection attempt " + attempts + " failed, retrying...");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        throw new RuntimeException("Failed to connect to " + appUrl + " after 5 attempts");
+    }
+
     @Test
     void shouldSubmitFormWithValidData() {
-        // Заполняем поле имени
         WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test-id=name] input")));
         nameInput.sendKeys("Иванов Иван");
 
-        // Заполняем поле телефона
         WebElement phoneInput = driver.findElement(By.cssSelector("[data-test-id=phone] input"));
         phoneInput.sendKeys("+79270000000");
 
-        // Кликаем чекбокс
         WebElement agreement = driver.findElement(By.cssSelector("[data-test-id=agreement]"));
         if (!agreement.isSelected()) {
             agreement.click();
         }
 
-        // Нажимаем кнопку
         WebElement button = driver.findElement(By.cssSelector("button.button"));
         button.click();
 
-        // Проверяем успешность
         WebElement success = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test-id=order-success]")));
         String actualText = success.getText().trim();
         assertEquals("Ваша заявка успешно отправлена! Наш менеджер свяжется с вами в ближайшее время.", actualText);
