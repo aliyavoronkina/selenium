@@ -20,23 +20,29 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-      
-    - name: Start SUT
-      run: java -jar ./artifacts/app-order.jar &
-      
-    - name: Wait for app to start
+    - name: Start SUT with nohup
       run: |
-        timeout 30 bash -c 'until echo > /dev/tcp/localhost/9999; do sleep 1; done' || exit 1
+        nohup java -jar ./artifacts/app-order.jar > app.log 2>&1 &
+        echo $! > app.pid
+        sleep 15
+        cat app.log
       
     - name: Test with Gradle
-      run: ./gradlew test
-      
+      run: |
+        ./gradlew test --info
+        TEST_EXIT_CODE=$?
+        # Останавливаем приложение после тестов
+        kill $(cat app.pid) 2>/dev/null || true
+        exit $TEST_EXIT_CODE
+      env:
+        CI: true
+        
     - name: Upload test reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-reports
-        path: build/reports/tests/test/
+        path: |
+          build/reports/tests/test/
+          app.log
         retention-days: 30
