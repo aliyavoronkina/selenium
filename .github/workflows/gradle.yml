@@ -19,21 +19,23 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Setup Gradle 7.6
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 7.6.4
+      - name: Download and setup Gradle 7.6
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+          unzip -q gradle-7.6.4-bin.zip
+          echo "GRADLE_HOME=$PWD/gradle-7.6.4" >> $GITHUB_ENV
+          echo "$PWD/gradle-7.6.4/bin" >> $GITHUB_PATH
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Verify Gradle version
+        run: gradle --version
 
       - name: Start SUT
         run: |
           java -jar ./artifacts/app-order.jar &
-          sleep 10
+          sleep 15
 
       - name: Test with Gradle
-        run: ./gradlew test --no-daemon
+        run: gradle test --no-daemon
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
