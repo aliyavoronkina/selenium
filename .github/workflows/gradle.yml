@@ -27,20 +27,11 @@ jobs:
       - name: Verify artifacts
         run: |
           echo "Checking artifacts directory..."
-          ls -la artifacts/ || echo "artifacts directory not found"
-          find . -name "*.jar" -type f | head -10 || echo "No jar files found"
+          ls -la artifacts/
 
       - name: Start SUT on port 8080
         id: start-app
         run: |
-          echo "Checking if app-order.jar exists..."
-          if [ ! -f "./artifacts/app-order.jar" ]; then
-            echo "ERROR: app-order.jar not found in artifacts directory!"
-            echo "Available files:"
-            ls -la artifacts/ 2>/dev/null || echo "artifacts directory doesn't exist"
-            exit 1
-          fi
-          
           echo "Starting application on port 8080..."
           java -jar ./artifacts/app-order.jar -port=8080 &
           APP_PID=$!
@@ -64,7 +55,7 @@ jobs:
       - name: Test with Gradle
         run: |
           echo "Running tests with port 8080..."
-          ./gradle-7.6.4/bin/gradle test -Dapp.port=8080 --no-daemon --info
+          ./gradle-7.6.4/bin/gradle test -Dapp.port=8080 --no-daemon
 
       - name: Stop SUT
         if: always()

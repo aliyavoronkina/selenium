@@ -24,10 +24,4 @@ test {
     useJUnitPlatform()
     systemProperty 'chromeoptions.prefs', System.getProperty('chromeoptions.prefs', "profile.password_manager_leak_detection=false")
     systemProperty 'app.port', System.getProperty('app.port', '9999')
-
-    testLogging {
-        events "passed", "skipped", "failed"
-        exceptionFormat "full"
-        showStandardStreams = true
-    }
 }

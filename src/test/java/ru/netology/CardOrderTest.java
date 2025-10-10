@@ -111,7 +111,7 @@ class CardOrderTest {
 
         WebElement error = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-test-id=name].input_invalid .input__sub")));
         String actualText = error.getText().trim();
-        assertEquals("Имя и фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.", actualText);
+        assertEquals("Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.", actualText);
     }
 
     @Test
