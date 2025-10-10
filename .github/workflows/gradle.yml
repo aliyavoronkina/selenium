@@ -19,28 +19,30 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Download and setup Gradle 7.6
+      - name: Download Gradle 7.6
         run: |
           wget -q https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
           unzip -q gradle-7.6.4-bin.zip
-          echo "GRADLE_HOME=$PWD/gradle-7.6.4" >> $GITHUB_ENV
-          echo "$PWD/gradle-7.6.4/bin" >> $GITHUB_PATH
 
-      - name: Verify Gradle version
-        run: gradle --version
-
-      - name: Start SUT
+      - name: Start SUT with more time
         run: |
           java -jar ./artifacts/app-order.jar &
-          sleep 15
+          echo "Waiting for app to start..."
+          sleep 20
+          echo "Checking if app is running..."
+          netstat -tulpn | grep 9999 || echo "Port 9999 check"
+          ps aux | grep java
 
-      - name: Test with Gradle
-        run: gradle test --no-daemon
+      - name: Test with Gradle 7.6
+        run: |
+          ./gradle-7.6.4/bin/gradle test --no-daemon --info
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-reports
-          path: build/reports/tests/test/
+          path: |
+            build/reports/tests/test/
+            build/test-results/test/
           retention-days: 30
