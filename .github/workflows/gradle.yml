@@ -24,35 +24,55 @@ jobs:
           wget -q https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
           unzip -q gradle-7.6.4-bin.zip
 
-      - name: Find free port and start SUT
+      - name: Verify artifacts
+        run: |
+          echo "Checking artifacts directory..."
+          ls -la artifacts/ || echo "artifacts directory not found"
+          find . -name "*.jar" -type f | head -10 || echo "No jar files found"
+
+      - name: Start SUT on port 8080
         id: start-app
         run: |
-          # Пробуем разные порты
-          for port in 8080 8888 7777 9990 9998; do
-            echo "Trying port $port"
-            java -jar ./artifacts/app-order.jar -port=$port &
-            APP_PID=$!
-            sleep 5
+          echo "Checking if app-order.jar exists..."
+          if [ ! -f "./artifacts/app-order.jar" ]; then
+            echo "ERROR: app-order.jar not found in artifacts directory!"
+            echo "Available files:"
+            ls -la artifacts/ 2>/dev/null || echo "artifacts directory doesn't exist"
+            exit 1
+          fi
           
-            if ps -p $APP_PID > /dev/null && (netstat -tulpn 2>/dev/null | grep -q ":$port" || curl -s http://localhost:$port > /dev/null); then
-              echo "App started successfully on port $port"
-              echo "port=$port" >> $GITHUB_OUTPUT
-              echo "pid=$APP_PID" >> $GITHUB_OUTPUT
-              break
-            else
-              kill $APP_PID 2>/dev/null || true
-              echo "Port $port failed, trying next..."
-            fi
-          done
+          echo "Starting application on port 8080..."
+          java -jar ./artifacts/app-order.jar -port=8080 &
+          APP_PID=$!
+          echo "pid=$APP_PID" >> $GITHUB_OUTPUT
+          
+          # Wait for app to start
+          sleep 10
+          
+          echo "Checking if app is running..."
+          if ps -p $APP_PID > /dev/null; then
+            echo "Application is running with PID: $APP_PID"
+          else
+            echo "Application failed to start!"
+            exit 1
+          fi
+          
+          # Test connection
+          echo "Testing connection to port 8080..."
+          curl -f http://localhost:8080 && echo "SUCCESS: Application is accessible" || echo "WARNING: Could not connect to application"
 
-      - name: Test with Gradle 7.6
+      - name: Test with Gradle
         run: |
-          ./gradle-7.6.4/bin/gradle test -Dapp.port=${{ steps.start-app.outputs.port }} --no-daemon --info
+          echo "Running tests with port 8080..."
+          ./gradle-7.6.4/bin/gradle test -Dapp.port=8080 --no-daemon --info
 
       - name: Stop SUT
         if: always()
         run: |
-          kill ${{ steps.start-app.outputs.pid }} 2>/dev/null || true
+          if [ -n "${{ steps.start-app.outputs.pid }}" ]; then
+            echo "Stopping application..."
+            kill ${{ steps.start-app.outputs.pid }} 2>/dev/null || true
+          fi
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
