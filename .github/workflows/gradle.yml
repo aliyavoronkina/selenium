@@ -19,58 +19,8 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Download Gradle 7.6
-        run: |
-          wget -q https://services.gradle.org/distributions/gradle-7.6.4-bin.zip
-          unzip -q gradle-7.6.4-bin.zip
-
-      - name: Verify artifacts
-        run: |
-          echo "Checking artifacts directory..."
-          ls -la artifacts/
-
-      - name: Start SUT on port 8080
-        id: start-app
-        run: |
-          echo "Starting application on port 8080..."
-          java -jar ./artifacts/app-order.jar -port=8080 &
-          APP_PID=$!
-          echo "pid=$APP_PID" >> $GITHUB_OUTPUT
-          
-          # Wait for app to start
-          sleep 10
-          
-          echo "Checking if app is running..."
-          if ps -p $APP_PID > /dev/null; then
-            echo "Application is running with PID: $APP_PID"
-          else
-            echo "Application failed to start!"
-            exit 1
-          fi
-          
-          # Test connection
-          echo "Testing connection to port 8080..."
-          curl -f http://localhost:8080 && echo "SUCCESS: Application is accessible" || echo "WARNING: Could not connect to application"
+      - name: Start SUT
+        run: java -jar ./artifacts/app-order.jar &
 
       - name: Test with Gradle
-        run: |
-          echo "Running tests with port 8080..."
-          ./gradle-7.6.4/bin/gradle test -Dapp.port=8080 --no-daemon
-
-      - name: Stop SUT
-        if: always()
-        run: |
-          if [ -n "${{ steps.start-app.outputs.pid }}" ]; then
-            echo "Stopping application..."
-            kill ${{ steps.start-app.outputs.pid }} 2>/dev/null || true
-          fi
-
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-reports
-          path: |
-            build/reports/tests/test/
-            build/test-results/test/
-          retention-days: 30
+        run: ./gradlew test --info
