@@ -18,12 +18,10 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+          cache: 'gradle'
 
       - name: Start SUT
         run: java -jar ./artifacts/app-order.jar &
 
       - name: Test with Gradle
-        run: ./gradlew test --info
+        run: gradle test --info
