@@ -19,11 +19,6 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Setup Gradle 7.6 for Java 11
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 7.6.4
-
       - name: Start SUT
         run: java -jar ./artifacts/app-order.jar &
 

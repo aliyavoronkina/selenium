@@ -1,23 +1,18 @@
-# Selenium Card Order Tests
-
-[![Java CI with Gradle](https://github.com/aliyavoronkina/selenium/actions/workflows/gradle.yml/badge.svg)](https://github.com/aliyavoronkina/selenium/actions/workflows/gradle.yml)
+# Автоматизация тестирования формы заказа карты
 
 ## Описание проекта
-
-Автоматизированные тесты для формы заказа банковской карты, реализованные с использованием Selenium WebDriver и JUnit 5.
+Проект содержит автоматизированные тесты для проверки функциональности формы заказа банковской карты.
 
 ## Технологии
-
-- Java 11
-- Selenium WebDriver 4.29.0
-- JUnit Jupiter 5.10.2
-- WebDriver Manager 5.9.3
+- Java 17
+- JUnit 5
+- Selenide
 - Gradle
+- GitHub Actions
 
 ## Запуск тестов
 
 ### Локальный запуск
-
-1. Запустите тестируемое приложение:
+1. Запустите SUT:
 ```bash
-java -jar ./artifacts/app-order.jar
+java -jar artifacts/app-order.jar
